@@ -149,10 +149,21 @@ export function queryOne(sql, params = []) {
     return { count: data.length };
   }
 
-  // Simple WHERE id = ? query
+  // Generic WHERE clause support
   if (params.length > 0 && sqlLower.includes('where')) {
-    const id = typeof params[0] === 'string' ? parseInt(params[0]) : params[0];
-    return db[table].find(row => row.id === id) || null;
+    const whereMatch = sqlLower.match(/where\s+(\w+)\s*=\s*\?/);
+    if (whereMatch) {
+      const column = whereMatch[1];
+      const value = params[0];
+
+      // Handle numeric IDs if column is 'id'
+      if (column === 'id') {
+        const id = typeof value === 'string' ? parseInt(value) : value;
+        return db[table].find(row => row.id === id) || null;
+      }
+
+      return db[table].find(row => row[column] === value) || null;
+    }
   }
 
   return db[table][0] || null;
